@@ -1,11 +1,17 @@
 package main;
 
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.DefaultHttpClient;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -21,12 +27,12 @@ public class AppRun {
             return;
         }
 
-        try {
-            doc = Jsoup.connect("https://yandex.ru/pogoda/" + args[0]).get();
-        } catch (IOException e) {
-            System.out.println("No such city found!");
+        //doc = getDocumentByJsoup("https://yandex.ru/pogoda/" + args[0]);
+        doc = getDocumentByApacheHttpClient("https://yandex.ru/pogoda/" + args[0]);
+
+        if (doc == null) {
+            System.out.printf("City with code '%s' is not found or something else does not work out!\n", args[0]);
             return;
-            //e.printStackTrace();
         }
 
         printSomething("title:", getTitle(doc));
@@ -34,6 +40,42 @@ public class AppRun {
         printSomething("time:", getFactTime(doc));
         printSomething("fact temp:", getFactTemp(doc));
         printSomething("other temps:", getOtherTemps(doc));
+    }
+
+    private static Document getDocumentByJsoup(String url) {
+        Document doc;
+
+        try {
+            doc = Jsoup.connect(url).get();
+        } catch (IOException e) {
+            return null;
+        }
+        return doc;
+    }
+
+    private static Document getDocumentByApacheHttpClient(String url) {
+        HttpClient client = new DefaultHttpClient();
+        HttpGet request = new HttpGet(url);
+        HttpResponse response;
+
+        try {
+            response = client.execute(request);
+        } catch (IOException e) {
+            return null;
+        }
+
+        StringBuilder textView = new StringBuilder();
+        String line;
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(response.getEntity().getContent()))) {
+            while ((line = br.readLine()) != null) {
+                textView.append(line);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+
+        return Jsoup.parse(textView.toString());
     }
 
     private static Function<Elements, List<String>> getTextFromElements = x -> {
@@ -64,25 +106,25 @@ public class AppRun {
     }
 
     private static void printSomething(String title, String content) {
-        System.out.println("> " + title.toUpperCase());
-        System.out.println(content);
+        System.out.println(">> " + title.toUpperCase());
+        System.out.printf("%s\n\n", content);
     }
 
-    public static String getFactTemp(Document doc) {
+    private static String getFactTemp(Document doc) {
         Elements factTemp = doc.getElementsByClass("fact__temp");
         return factTemp.select("span").text();
     }
 
-    public static String getFactTime(Document doc) {
+    private static String getFactTime(Document doc) {
         Elements factTime = doc.getElementsByClass("fact__time");
         return factTime.text();
     }
 
-    public static String getTitle(Document doc) {
+    private static String getTitle(Document doc) {
         return doc.title();
     }
 
-    public static String getDescription(Document doc) {
+    private static String getDescription(Document doc) {
         return doc.getElementsByAttributeValue("name", "description").attr("content");
     }
 }
