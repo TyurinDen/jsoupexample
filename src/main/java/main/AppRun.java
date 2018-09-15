@@ -12,12 +12,19 @@ import org.jsoup.select.Elements;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 
+/**
+ * Simplest program that displays information about the weather on the console from the site yandex.ru/pogoda/...
+ *
+ * Using: Jsoup, Apache HttpClient.
+ *
+ * Command line parameters: city code, for example 51 for Samara, 55 for Tyumen and so on.
+ *
+ * @author Denis Tyurin
+ *
+*/
 public class AppRun {
     public static void main(String[] args) {
         Document doc;
@@ -78,14 +85,10 @@ public class AppRun {
         return Jsoup.parse(textView.toString());
     }
 
-    private static Function<Elements, List<String>> getTextFromElements = x -> {
-        List<String> strings = new ArrayList<>();
-        for (Element e : x) {
-            strings.add(e.text());
-        }
-        return strings;
-    };
-
+    /**
+    * This method combines two ArrayList<String> into Map<String, String>, where the first List is the key of Map,
+    * and the second List - the value of the Map
+    */
     private static String getOtherTemps(Document doc) {
         Map<String, String> stringStringMap = new LinkedHashMap<>();
         int i = 0;
